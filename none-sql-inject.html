@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,7 +27,7 @@
         }
 
         .warning-banner {
-            background: #ff4757;
+            background: #23c902;
             color: white;
             padding: 12px 0;
             text-align: center;
@@ -461,9 +462,10 @@
         }
     </style>
 </head>
+
 <body>
     <div class="warning-banner">
-        ⚠️ ВНИМАНИЕ: УЯЗВИМЫЙ РЕЖИМ - SQL-инъекции возможны!
+        ✅ Безопасный режим
     </div>
 
     <header class="header">
@@ -476,10 +478,10 @@
                         <p>Мессенджер</p>
                     </div>
                 </div>
-                
+
                 <div class="nav-links">
-                    <a href="#" class="nav-link active">Небезопасный режим</a>
-                    <a href="none-sql-inject.html" class="nav-link">Безопасный режим</a>
+                    <a href="index.html" class="nav-link">Небезопасный режим</a>
+                    <a href="#" class="nav-link active">Безопасный режим</a>
                 </div>
             </div>
         </div>
@@ -508,12 +510,7 @@
 
             <div class="search-section">
                 <div class="search-container">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        class="search-input" 
-                        placeholder="Введите имя для поиска..."
-                    >
+                    <input type="text" id="searchInput" class="search-input" placeholder="Введите имя для поиска...">
                     <button id="searchBtn" class="btn btn-danger">Найти</button>
                 </div>
             </div>
@@ -543,7 +540,7 @@
         let db = null;
         let SQL = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', async function () {
             await initSQL();
             loadAllUsers();
             setupSearch();
@@ -555,7 +552,7 @@
                 SQL = await initSqlJs({
                     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
                 });
-                
+
                 db = new SQL.Database();
                 createDatabase();
                 console.log("SQL.js инициализирован");
@@ -619,7 +616,7 @@
         function loadAllUsers() {
             const sqlQuery = "SELECT * FROM users WHERE is_friend='1'";
             const result = db.exec(sqlQuery);
-            
+
             let users = [];
             if (result && result[0]) {
                 users = result[0].values.map(row => ({
@@ -638,7 +635,7 @@
 
         function renderUsers(usersList) {
             const grid = document.getElementById('usersGrid');
-            
+
             if (usersList.length === 0) {
                 grid.innerHTML = `
                     <div class="no-friends">
@@ -686,9 +683,9 @@
         function setupSearch() {
             const searchBtn = document.getElementById('searchBtn');
             const searchInput = document.getElementById('searchInput');
-            
+
             searchBtn.addEventListener('click', performSearch);
-            searchInput.addEventListener('keypress', function(e) {
+            searchInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') performSearch();
             });
         }
@@ -696,51 +693,68 @@
         function performSearch() {
             const searchInput = document.getElementById('searchInput');
             const query = searchInput.value.trim();
-            
+
             if (!query) {
                 loadAllUsers();
                 document.getElementById('sqlQueryContainer').style.display = 'none';
                 return;
             }
 
-            const sqlQuery = `SELECT * FROM users WHERE name LIKE '%${query}%'`;
-            
-            document.getElementById('sqlQuery').textContent = sqlQuery;
+            // Параметризованный запрос с LIKE для поиска по части имени
+            const sqlQuery = `SELECT * FROM users WHERE name LIKE ?`;
+
+            // Показываем безопасный запрос
+            document.getElementById('sqlQuery').textContent = `${sqlQuery} (параметр: '%${query}%')`;
             document.getElementById('sqlQueryContainer').style.display = 'block';
 
             try {
-                const result = db.exec(sqlQuery);
-                
-                let foundUsers = [];
-                
-                if (result && result[0]) {
-                    foundUsers = result[0].values.map(row => ({
-                        id: row[0],
-                        username: row[1],
-                        name: row[2],
-                        status: row[3],
-                        is_friend: row[4],
-                        avatar: getInitials(row[2])
-                    }));
+                // ПОДГОТОВЛЕННОЕ ВЫРАЖЕНИЕ - ключевая защита от SQL-инъекций
+                const stmt = db.prepare(sqlQuery);
+
+                // Передаем параметры отдельно - они НЕ МОГУТ изменить структуру запроса
+                // Даже если query содержит ' OR '1'='1, это будет просто строка для поиска
+                const searchPattern = `%${query}%`;
+
+                // Привязываем параметры и выполняем
+                stmt.bind([searchPattern]);
+
+                // Собираем результаты
+                const foundUsers = [];
+                while (stmt.step()) {
+                    const row = stmt.getAsObject();
+                    foundUsers.push({
+                        id: row.id,
+                        username: row.username,
+                        name: row.name,
+                        status: row.status,
+                        is_friend: row.is_friend,
+                        avatar: getInitials(row.name)
+                    });
                 }
+
+                stmt.free();
 
                 renderUsers(foundUsers);
                 updateStats(foundUsers);
-                
-                showSecurityWarning(query);
-                
+
+                // Демонстрация безопасности
+                if (query.includes("'") || query.includes("OR") || query.includes("--")) {
+                    showAlert("🔒 SQL-инъекция заблокирована! Вредоносный код обработан как обычный текст поиска.", "info");
+                }
+
             } catch (error) {
                 console.error("SQL ошибка:", error);
                 renderUsers([]);
                 updateStats([]);
+                showAlert("Ошибка выполнения запроса", "error");
             }
         }
 
         function setupExamples() {
             const examples = document.querySelectorAll('.example-item');
-            
+
             examples.forEach(example => {
-                example.addEventListener('click', function() {
+                example.addEventListener('click', function () {
                     const query = this.getAttribute('data-query');
                     document.getElementById('searchInput').value = query;
                 });
@@ -762,4 +776,5 @@
         }
     </script>
 </body>
+
 </html>
