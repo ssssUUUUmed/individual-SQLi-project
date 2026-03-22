@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHEMK - Друзья</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .warning-banner {
+            background: #ff4757;
+            color: white;
+            padding: 12px 0;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e1e5e9;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3436;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: #636e72;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #2d3436;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: #f1f2f6;
+        }
+
+        .nav-link.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .main-content {
+            padding: 40px 0;
+        }
+
+        .app-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .app-header h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .app-header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .search-section {
+            padding: 30px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3742;
+            transform: translateY(-2px);
+        }
+
+        .friends-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .friend-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .friend-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .friend-card.friend {
+            border-color: #667eea;
+        }
+
+        .friend-card.not-friend {
+            border-color: #636e72;
+            opacity: 0.7;
+        }
+
+        .friend-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-friend {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge-not-friend {
+            background: #636e72;
+            color: white;
+        }
+
+        .friend-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .friend-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .friend-avatar.friend {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .friend-avatar.not-friend {
+            background: linear-gradient(135deg, #636e72, #2d3436);
+        }
+
+        .friend-info h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+            color: #2d3436;
+        }
+
+        .friend-info p {
+            color: #636e72;
+            font-size: 14px;
+        }
+
+        .friend-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-online {
+            color: #00b894;
+        }
+
+        .status-offline {
+            color: #636e72;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-online .status-dot {
+            background: #00b894;
+        }
+
+        .status-offline .status-dot {
+            background: #636e72;
+        }
+
+        .friend-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add {
+            background: #00b894;
+            color: white;
+        }
+
+        .btn-remove {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-message {
+            background: #667eea;
+            color: white;
+        }
+
+        .sql-query-container {
+            background: #2d3436;
+            color: #00b894;
+            padding: 20px;
+            margin: 20px 30px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #00b894;
+        }
+
+        .sql-query-title {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .examples-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .example-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e1e5e9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .example-code {
+            font-family: 'Courier New', monospace;
+            color: #ff4757;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .example-description {
+            color: #636e72;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .no-friends {
+            text-align: center;
+            padding: 60px 20px;
+            color: #636e72;
+        }
+
+        .no-friends h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 0 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            min-width: 120px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #636e72;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .friends-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="warning-banner">
+        ⚠️ ВНИМАНИЕ: УЯЗВИМЫЙ РЕЖИМ - SQL-инъекции возможны!
+    </div>
+
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">C</div>
+                    <div class="logo-text">
+                        <h1>CHEMK</h1>
+                        <p>Мессенджер</p>
+                    </div>
+                </div>
+                
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link active">👥 Друзья</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        <div class="app-container">
+            <div class="app-header">
+                <h2>👥 Поиск друзей в CHEMK</h2>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalUsers">0</div>
+                    <div class="stat-label">Всего пользователей</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="friendCount">0</div>
+                    <div class="stat-label">Друзей</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="onlineCount">0</div>
+                    <div class="stat-label">Онлайн</div>
+                </div>
+            </div>
+
+            <div class="search-section">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Введите имя для поиска..."
+                    >
+                    <button id="searchBtn" class="btn btn-danger">Найти</button>
+                </div>
+            </div>
+
+            <div id="sqlQueryContainer" class="sql-query-container" style="display: none;">
+                <div class="sql-query-title">Выполненный SQL-запрос:</div>
+                <pre id="sqlQuery"></pre>
+            </div>
+
+            <div class="friends-grid" id="usersGrid">
+
+            </div>
+
+            <div class="examples-section">
+                <h3 style="margin-bottom: 15px;">💻 Примеры SQL-инъекций для тестирования:</h3>
+                <div class="examples-grid">
+                    <div class="example-item" data-query="' OR '1'='1">
+                        <div class="example-code">' OR '1'='1</div>
+                        <div class="example-description">Показать всех пользователей (друзей и не только)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let db = null;
+        let SQL = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initSQL();
+            loadAllUsers();
+            setupSearch();
+            setupExamples();
+        });
+
+        async function initSQL() {
+            try {
+                SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+                
+                db = new SQL.Database();
+                createDatabase();
+                console.log("SQL.js инициализирован");
+            } catch (error) {
+                console.error("Ошибка SQL.js:", error);
+            }
+        }
+
+        function createDatabase() {
+            db.run(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    status TEXT DEFAULT 'offline',
+                    is_friend BOOLEAN DEFAULT 0
+                )
+            `);
+
+            db.run(`
+                CREATE TABLE IF NOT EXISTS admin_users (
+                    id INTEGER PRIMARY KEY,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    role TEXT DEFAULT 'admin'
+                )
+            `);
+
+            db.run("DELETE FROM users");
+            db.run("DELETE FROM admin_users");
+
+            const insertUser = db.prepare(`
+                INSERT INTO users (id, username, name, status, is_friend) 
+                VALUES (?, ?, ?, ?, ?)
+            `);
+
+            insertUser.run([1, 'alexey', 'Алексей Петров', 'online', 1]);
+            insertUser.run([2, 'arina', 'Арина Костяева', 'online', 1]);
+            insertUser.run([3, 'dmitry', 'Дмитрий Сидоров', 'offline', 1]);
+            insertUser.run([4, 'lapyla', 'Ариша Костяева', 'online', 1]);
+
+            insertUser.run([5, 'ivan', 'Иван Николаев', 'offline', 0]);
+            insertUser.run([6, 'olga', 'Ольга Волкова', 'online', 0]);
+            insertUser.run([7, 'sergey', 'Сергей Кузнецов', 'online', 0]);
+            insertUser.run([8, 'natalia', 'Наталья Морозова', 'offline', 0]);
+            insertUser.run([9, 'andrey', 'Андрей Павлов', 'online', 0]);
+            insertUser.run([10, 'elena', 'Елена Орлова', 'offline', 0]);
+
+            insertUser.free();
+
+            const insertAdmin = db.prepare(`
+                INSERT INTO admin_users (id, username, password, role) 
+                VALUES (?, ?, ?, ?)
+            `);
+
+            insertAdmin.run([1, 'admin', 'super_secret_123', 'admin']);
+            insertAdmin.run([2, 'moderator', 'mod_pass_456', 'moderator']);
+            insertAdmin.free();
+        }
+
+        function loadAllUsers() {
+            const sqlQuery = "SELECT * FROM users WHERE is_friend='1'";
+            const result = db.exec(sqlQuery);
+            
+            let users = [];
+            if (result && result[0]) {
+                users = result[0].values.map(row => ({
+                    id: row[0],
+                    username: row[1],
+                    name: row[2],
+                    status: row[3],
+                    is_friend: row[4],
+                    avatar: getInitials(row[2])
+                }));
+            }
+
+            renderUsers(users);
+            updateStats(users);
+        }
+
+        function renderUsers(usersList) {
+            const grid = document.getElementById('usersGrid');
+            
+            if (usersList.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-friends">
+                        <h3>Пользователи не найдены</h3>
+                        <p>Попробуйте изменить поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = usersList.map(user => `
+                <div class="friend-card friend">
+                    <div class="friend-badge badge-friend">
+                        ${user.is_friend ? 'Друг' : 'Пользователь'}
+                    </div>
+                    <div class="friend-header">
+                        <div class="friend-avatar friend">${user.avatar}</div>
+                        <div class="friend-info">
+                            <h3>${user.name}</h3>
+                            <p>@${user.username}</p>
+                        </div>
+                    </div>
+                    <div class="friend-status ${user.status === 'online' ? 'status-online' : 'status-offline'}">
+                        <div class="status-dot"></div>
+                        ${user.status === 'online' ? 'В сети' : 'Не в сети'}
+                    </div>
+                    <div class="friend-actions">
+                        <button class="btn-small btn-message">💬 Написать</button>
+                        <button class="btn-small btn-remove">🗑️ Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(users) {
+            const totalUsers = users.length;
+            const friendCount = users.filter(u => u.is_friend).length;
+            const onlineCount = users.filter(u => u.status === 'online').length;
+
+            document.getElementById('totalUsers').textContent = totalUsers;
+            document.getElementById('friendCount').textContent = friendCount;
+            document.getElementById('onlineCount').textContent = onlineCount;
+        }
+
+        function setupSearch() {
+            const searchBtn = document.getElementById('searchBtn');
+            const searchInput = document.getElementById('searchInput');
+            
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const query = searchInput.value.trim();
+            
+            if (!query) {
+                loadAllUsers();
+                document.getElementById('sqlQueryContainer').style.display = 'none';
+                return;
+            }
+
+            const sqlQuery = `SELECT * FROM users WHERE name LIKE '%${query}%'`;
+            
+            document.getElementById('sqlQuery').textContent = sqlQuery;
+            document.getElementById('sqlQueryContainer').style.display = 'block';
+
+            try {
+                const result = db.exec(sqlQuery);
+                
+                let foundUsers = [];
+                
+                if (result && result[0]) {
+                    foundUsers = result[0].values.map(row => ({
+                        id: row[0],
+                        username: row[1],
+                        name: row[2],
+                        status: row[3],
+                        is_friend: row[4],
+                        avatar: getInitials(row[2])
+                    }));
+                }
+
+                renderUsers(foundUsers);
+                updateStats(foundUsers);
+                
+                showSecurityWarning(query);
+                
+            } catch (error) {
+                console.error("SQL ошибка:", error);
+                renderUsers([]);
+                updateStats([]);
+            }
+        }
+
+        function setupExamples() {
+            const examples = document.querySelectorAll('.example-item');
+            
+            examples.forEach(example => {
+                example.addEventListener('click', function() {
+                    const query = this.getAttribute('data-query');
+                    document.getElementById('searchInput').value = query;
+                });
+            });
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(word => word[0]).join('').toUpperCase();
+        }
+
+        function showSecurityWarning(query) {
+
+        }
+
+        function showAlert(message, type) {
+            setTimeout(() => {
+                alert(message);
+            }, 100);
+        }
+    </script>
+</body>
+</html>
